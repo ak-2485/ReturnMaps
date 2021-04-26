@@ -149,3 +149,5 @@ yplot1 = np.ravel(history_model[:,1,:])
 ax1.plot(xplot1,yplot1,'b.', markersize = .2)
 ax1.plot(zic[:,0],zic[:,1],'r.')
 ax1.set_title('Poincare plot by HenonNet')
+
+plt.savefig('pp_pendulum.png')

@@ -106,4 +106,4 @@ ax1.legend((line1, line2), ('HenonNet', 'Reference'))
 ax1.set_title('Learned flow for pendulum')
 
 
-plt.show()
+plt.savefig('flow_pendulum.png')
