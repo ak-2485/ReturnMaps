@@ -5,6 +5,8 @@ from tensorflow import keras
 from HenonNet import HenonNet
 import time
 
+tf.keras.backend.set_floatx('float64')
+
 def get_eps():
     return 0.5
 
