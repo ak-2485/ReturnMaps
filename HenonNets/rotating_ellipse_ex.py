@@ -7,13 +7,12 @@ import time
 import random
 
 import sys
-sys.path.append('~/Documents/research/FOCUS/python')
+sys.path.append('../../FOCUS/python')
 from mpi4py import MPI
 from focuspy import FOCUSpy
 import focus
 
 from coilpy import *
-ref = FOCUSHDF5('../FOCUSdata/focus_ellipse.h5')
 
 # MPI_INIT
 comm = MPI.COMM_WORLD
@@ -31,6 +30,7 @@ focus.globals.pp_ns      = 100000 # number of fieldlines
 focus.globals.pp_maxiter = 10 # number of periods to integrate
 test.run(verbose=True)
 
+ref = FOCUSHDF5('focus_ellipse.h5')
 # get the poincare plot points from FOCUS data
 r = ref.ppr - ref.pp_raxis
 z = ref.ppz - ref.pp_zaxis
@@ -113,6 +113,7 @@ focus.globals.pp_ns      = nics # number of fieldlines
 focus.globals.pp_maxiter = n_steps # number of periods to integrate
 test.run(verbose=True)
 
+ref = FOCUSHDF5('focus_ellipse.h5')
 # get the poincare plot points from FOCUS data
 r = ref.ppr - ref.pp_raxis
 z = ref.ppz - ref.pp_zaxis
