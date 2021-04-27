@@ -7,6 +7,7 @@ import time
 
 tf.keras.backend.set_floatx('float64')
 
+
 def get_eps():
     return 0.5
 
@@ -132,7 +133,7 @@ print('Using model and rk4 to generate poincare sections...')
 
 for i in range(n_steps+1):
     history_model[:,:, i] = current_state_model.numpy()[:,:]
-    current_state_model = test_model2(current_state_model)
+    current_state_model = test_model(current_state_model)
 
 end=time.time()
 history_rk = np.zeros([nics,2,n_steps+1])
