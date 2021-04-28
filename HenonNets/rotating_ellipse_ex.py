@@ -11,46 +11,14 @@ sys.path.append('../../FOCUS/python')
 from mpi4py import MPI
 from focuspy import FOCUSpy
 import focus
+from rotating_ellipse_datagen import datagen
 
 from coilpy import *
 
-# MPI_INIT
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
-# run FOCUS; pp_ns training points requires a large number of CPUs
-if rank==0:
-    print("##### Begin FOCUS run with {:d} CPUs. #####".format(size))
-    master = True
-
-test = FOCUSpy(comm=comm, extension='ellipse', verbose=True)
-focus.globals.cg_maxiter = 1 # bunk
-focus.globals.pp_ns      = 100000 # number of fieldlines
-focus.globals.pp_maxiter = 10 # number of periods to integrate
-test.run(verbose=True)
-
-ref = FOCUSHDF5('focus_ellipse.h5')
-# get the poincare plot points from FOCUS data
-r = ref.ppr - ref.pp_raxis
-z = ref.ppz - ref.pp_zaxis
-# starting points are raw data
-n_samples = len(r[0])
-data = np.hstack([r[0].reshape(n_samples,1),z[0].reshape(n_samples,1)])
-# labels are final integration points from FOCUS
-lf = len(r)-1
-labels = np.hstack([r[lf].reshape(n_samples,1),z[lf].reshape(n_samples,1)])
+labels, data = datagen(1,10,10,'ellipse')
 
 tf.keras.backend.set_floatx('float64')
-
-def gen_samples(x,y,n_samples):
-    inds = np.random.choice(range(len(x)),n_samples,replace=False)
-    xs = np.array([x[i] for i in inds])
-    ys = np.array([y[i] for i in inds])
-    latent_samples = np.hstack([xs.reshape(n_samples,1),ys.reshape(n_samples,1)])
-    sample = latent_samples
-    out = sample[:,:]
-    return [out,latent_samples]
 
 def scheduler(epoch):
     if epoch < 20:
