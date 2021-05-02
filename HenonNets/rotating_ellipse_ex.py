@@ -5,18 +5,21 @@ from tensorflow import keras
 from HenonNet import HenonNet
 import time
 import random
-
-import sys
-sys.path.append('../../FOCUS/python')
-from mpi4py import MPI
-from focuspy import FOCUSpy
-import focus
-from rotating_ellipse_datagen import datagen
-
 from coilpy import *
+import sys
 
 
-labels, data = datagen(1,10,10,'ellipse')
+ref = FOCUSHDF5('focus_ellipse_10k.h5')
+# get the poincare plot points from FOCUS data
+r = ref.ppr - ref.pp_raxis
+z = ref.ppz - ref.pp_zaxis
+# starting points are raw data
+n_samples = len(r[0])
+data = np.hstack([r[0].reshape(n_samples,1),z[0].reshape(n_samples,1)])
+# labels are final integration points from FOCUS
+lf = len(r)-1
+labels = np.hstack([r[lf].reshape(n_samples,1),z[lf].reshape(n_samples,1)])
+
 
 tf.keras.backend.set_floatx('float64')
 
@@ -75,33 +78,59 @@ Verify
 nics = 20
 n_steps = 1000
 
-test = FOCUSpy(comm=comm, extension='ellipse', verbose=True)
-focus.globals.cg_maxiter = 1 # bunk
-focus.globals.pp_ns      = nics # number of fieldlines
-focus.globals.pp_maxiter = n_steps # number of periods to integrate
-test.run(verbose=True)
-
-ref = FOCUSHDF5('focus_ellipse.h5')
 # get the poincare plot points from FOCUS data
-r = ref.ppr - ref.pp_raxis
-z = ref.ppz - ref.pp_zaxis
-xic = r[0]
-xic = np.array(xic).reshape([nics,1])
-yic = z[0]
-yic = np.array(yic).reshape([nics,1])
+r_init = r[0]
+z_init = z[0]
+ind_rng = range(0,len(r_init),len(r_init)//nics)
+rp = [r_init[i] for i in ind_rng]
+zp = [z_init[i] for i in ind_rng]
+xic = np.array(rp).reshape([nics,1])
+yic = np.array(zp).reshape([nics,1])
 zic = np.hstack([xic,yic])
 current_state_model = tf.convert_to_tensor(zic, dtype = tf.float64)
 history_model = np.zeros([nics,2,n_steps+1])
-start=time.time()
 
 for i in range(n_steps+1):
     history_model[:,:, i] = current_state_model.numpy()[:,:]
     current_state_model = test_model(current_state_model)
+    # poincare plot
 
-end=time.time()
+def poincare_plot(ppr, ppz, pp_ns_range, color=None, **kwargs):
+    """Poincare plot
+    Args:
+    color (matplotlib color, or None): dot colors; default None (rainbow).
+    kwargs : matplotlib scatter keyword arguments
+    Returns:
+    None
+    """
+    from matplotlib import cm
 
-print('Poincare sections generated. Uses {} seconds'.format(end-start))
-
+    pp_ns = len(pp_ns_range)
+    
+    # get figure and ax data
+    if plt.get_fignums():
+        fig = plt.gcf()
+        ax = plt.gca()
+    else:
+        fig, ax = plt.subplots()
+        
+    # get colors
+    if color == None:
+        colors = cm.rainbow(np.linspace(1, 0, pp_ns))
+    else:
+        colors = [color] * pp_ns
+    kwargs["s"] = kwargs.get("s", 0.1)  # dotsize
+    # scatter plot
+    for i in pp_ns_range:
+        ax.scatter(ppr[:, i], ppz[:, i], color=colors[i], **kwargs)
+        plt.axis("equal")
+        plt.xlabel("R [m]", fontsize=20)
+        plt.ylabel("Z [m]", fontsize=20)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+    return
+    
+print('Starting plots')
 # plot both sections
 fig1, ax1 = plt.subplots()
 xplot1 = np.ravel(history_model[:,0,:])
@@ -114,8 +143,7 @@ plt.savefig('ppH_ellipse.png')
 fig2, ax2 = plt.subplots()
 ref.ppr = ref.ppr - ref.pp_raxis
 ref.ppz = ref.ppz - ref.pp_zaxis
-ref.poincare_plot()
+poincare_plot(ref.ppr,ref.ppz,ind_rng)
 ax2.plot(zic[:,0],zic[:,1],'r.')
 ax2.set_title('Poincare plot by FOCUS')
-
 plt.savefig('ppF_ellipse.png')
