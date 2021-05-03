@@ -23,31 +23,34 @@ labels = np.hstack([r[lf].reshape(n_samples,1),z[lf].reshape(n_samples,1)])
 
 tf.keras.backend.set_floatx('float64')
 
+rate_init = 0.1
 def scheduler(epoch):
     if epoch < 20:
-        return 5e-2
+        return rate_init
     elif epoch < 80:
-        return 2e-2
+        return rate_init*0.5**2
     elif epoch < 200:
-        return 6e-3
+        return rate_init*0.5**3
     elif epoch < 300:
-        return 4e-3
+        return rate_init*0.5**4
     elif epoch < 400:
-        return 2e-3
+        return rate_init*0.5**5
     elif epoch < 600:
-        return 1e-3
+        return rate_init*0.5**6
     elif epoch < 1000:
-        return 8e-4
+        return rate_init*0.5**7
     elif epoch < 1500:
-        return 7e-4
+        return rate_init*0.5**8
     elif epoch < 2500:
-        return 5e-4
+        return rate_init*0.5**9
     elif epoch < 3500:
-        return 2e-4
+        return rate_init*0.5**10
     elif epoch < 4500:
-        return 5e-5
+        return rate_init*0.5**11
+    elif epoch < 5500:
+        return rate_init*0.5**12
     else:
-        return 1e-5
+        return rate_init*0.5**13
 
 ymean_tf = tf.constant(0., dtype = tf.float64)
 ydiam_tf = tf.constant(2., dtype = tf.float64)
@@ -56,8 +59,8 @@ callback = keras.callbacks.LearningRateScheduler(scheduler)
 loss_fun = keras.losses.MeanSquaredError()
 
 l = []
-for i in range(10):
-    l.append(10)
+for i in range(50):
+    l.append(5)
 unit_schedule = l
 
 n_data=n_samples
@@ -69,7 +72,7 @@ test_model.compile(optimizer = Adamoptimizer, loss = loss_fun)
 
 h = test_model.fit(tf.convert_to_tensor(data[:n_data], dtype = tf.float64)
     ,tf.convert_to_tensor(labels[:n_data], dtype = tf.float64)
-    , batch_size = 1000, epochs = 5000, verbose=0, callbacks = [callback])
+    , batch_size = 400, epochs = 7000, verbose=0, callbacks = [callback])
 
 
 """
@@ -81,9 +84,12 @@ n_steps = 1000
 # get the poincare plot points from FOCUS data
 r_init = r[0]
 z_init = z[0]
-ind_rng = range(0,len(r_init),len(r_init)//nics)
+ind_rng = range(0,int(len(r_init)//2),(len(r_init)//2)//nics)
 rp = [r_init[i] for i in ind_rng]
 zp = [z_init[i] for i in ind_rng]
+#ind_rng = range(nics)
+#rp = r_init[0:nics]
+#zp = z_init[0:nics]
 xic = np.array(rp).reshape([nics,1])
 yic = np.array(zp).reshape([nics,1])
 zic = np.hstack([xic,yic])
@@ -106,14 +112,14 @@ def poincare_plot(ppr, ppz, pp_ns_range, color=None, **kwargs):
     from matplotlib import cm
 
     pp_ns = len(pp_ns_range)
-    
+
     # get figure and ax data
     if plt.get_fignums():
         fig = plt.gcf()
         ax = plt.gca()
     else:
         fig, ax = plt.subplots()
-        
+
     # get colors
     if color == None:
         colors = cm.rainbow(np.linspace(1, 0, pp_ns))
@@ -122,14 +128,16 @@ def poincare_plot(ppr, ppz, pp_ns_range, color=None, **kwargs):
     kwargs["s"] = kwargs.get("s", 0.1)  # dotsize
     # scatter plot
     for i in pp_ns_range:
-        ax.scatter(ppr[:, i], ppz[:, i], color=colors[i], **kwargs)
+        j = 0
+        ax.scatter(ppr[:, i], ppz[:, i], color=colors[j], **kwargs)
+        j+=1
         plt.axis("equal")
         plt.xlabel("R [m]", fontsize=20)
         plt.ylabel("Z [m]", fontsize=20)
         plt.xticks(fontsize=16)
         plt.yticks(fontsize=16)
     return
-    
+
 print('Starting plots')
 # plot both sections
 fig1, ax1 = plt.subplots()
@@ -141,9 +149,7 @@ ax1.set_title('Poincare plot by HenonNet')
 plt.savefig('ppH_ellipse.png')
 
 fig2, ax2 = plt.subplots()
-ref.ppr = ref.ppr - ref.pp_raxis
-ref.ppz = ref.ppz - ref.pp_zaxis
-poincare_plot(ref.ppr,ref.ppz,ind_rng)
+poincare_plot(r,z,ind_rng)
 ax2.plot(zic[:,0],zic[:,1],'r.')
 ax2.set_title('Poincare plot by FOCUS')
 plt.savefig('ppF_ellipse.png')
