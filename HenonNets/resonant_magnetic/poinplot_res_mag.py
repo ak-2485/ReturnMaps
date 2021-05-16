@@ -79,32 +79,32 @@ r1=1.75
 r2=1.0
 eps=get_eps()
 data_raw = gen_samples_pmap([0,0], r1,r2, 10000, 400,eps)
-lables_raw = gen_labels(data_raw, 400000, 1,eps)
+#labels_raw = gen_labels(data_raw, 400000, 1,eps)
 print("done generating labels and data")
-#loc=(labels_raw[:,0]/r1)**2 + (labels_raw[:,1]/r2)**2
-#ind=np.argwhere(loc <= 1.0) #check if in ellipse
-#n_data = len(ind) if len(ind) < 400000 else 400000
-n_data  = 400000
+print(np.shape(data_raw))
 
 #data=np.zeros([n_data,2])
 #data[:,0:1]=data_raw[:,0]
 #data[:,1:2]=data_raw[:,1]
-data = data_raw[:,:]
+data = data_raw
 #labels=np.zeros([n_data,2])
-labels = labels_raw[:,:]
+#labels = labels_raw
 #labels[:,0:1]=labels_raw[:,0]
 #labels[:,1:2]=labels_raw[:,1]
 
 print("starting viz data")
 #visualize training data
-fig, ax = plt.subplots()
-plt.plot(labels[:,0],labels[:,1],'.',markersize=1)
-ax.set_title('Poincare map output')
+#fig, ax = plt.subplots()
+#plt.plot(labels[:,0],labels[:,1],'.',markersize=1)
+#ax.set_title('Poincare map output')
+#plt.savefig('res_mag_out_data.png')
+
 fig, ax = plt.subplots()
 plt.plot(data[:,0],data[:,1],'r.',markersize=1)
 ax.set_title('Poincare map input')
-plt.savefig('res_mag_inout_data.png')
+plt.savefig('res_mag_in_data.png')
 
+sys.exit()
 rate_init = 0.1
 def scheduler(epoch):
     if epoch < 20:
@@ -149,8 +149,8 @@ test_model.setvals(unit_schedule, ymean_tf, ydiam_tf)
 Adamoptimizer = keras.optimizers.Adam()
 test_model.compile(optimizer = Adamoptimizer, loss = loss_fun)
 
-h = test_model.fit(tf.convert_to_tensor(data[:n_data], dtype = tf.float64)
-    ,tf.convert_to_tensor(labels[:n_data], dtype = tf.float64)
+h = test_model.fit(tf.convert_to_tensor(data, dtype = tf.float64)
+    ,tf.convert_to_tensor(labels, dtype = tf.float64)
     , batch_size = 400, epochs = 7000, verbose=0, callbacks = [callback])
 
 
