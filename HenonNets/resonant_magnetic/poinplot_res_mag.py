@@ -53,7 +53,7 @@ def gen_samples_ellipse(origin,r_major,r_minor,n_samples):
     return np.hstack([x.reshape(n_samples,1),y.reshape(n_samples,1)])
 
 def gen_samples_pmap(origin,r1,r2,nics,n_iterations,eps):
-    rkstep   = 2000
+    rkstep   = 1500
     interval = 10
     latent_samples = gen_samples_ellipse(origin, r1,r2,nics)
     n_samples=(n_iterations//interval)*nics
@@ -62,14 +62,13 @@ def gen_samples_pmap(origin,r1,r2,nics,n_iterations,eps):
     sample = latent_samples[:,:]
     for i in range(n_iterations):
         sample = rk_pmap(sample,eps,rkstep)
-        print(sample)
         if (i % interval == 0 and i != 0):
             ind = i//interval
             samples[ind*nics:(ind+1)*nics,:] = sample[:,:]
     return samples
 
 def gen_labels(samples, nics, n_iterations, eps):
-    rkstep=2000
+    rkstep=1500
     n_samples=nics
     out = np.zeros([n_samples,2])
     for i in range(n_iterations):
@@ -81,7 +80,7 @@ def gen_labels(samples, nics, n_iterations, eps):
 r1=1.75
 r2=1.0
 eps=get_eps()
-data_raw = gen_samples_pmap([0,0], r1,r2, 100, 40,eps)
+data_raw = gen_samples_pmap([0,0], r1,r2, 10000, 400,eps)
 sys.exit()
 #labels_raw = gen_labels(data_raw, 400000, 1,eps)
 print("done generating labels and data")
