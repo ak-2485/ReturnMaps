@@ -81,7 +81,7 @@ r1=1.75
 r2=1.0
 eps=get_eps()
 data_raw = gen_samples_pmap([0,0], r1,r2, 10000, 400,eps)
-sys.exit()
+
 #labels_raw = gen_labels(data_raw, 400000, 1,eps)
 print("done generating labels and data")
 print(np.shape(data_raw))
