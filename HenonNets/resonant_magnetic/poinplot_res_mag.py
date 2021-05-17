@@ -105,7 +105,7 @@ print("starting viz data")
 fig, ax = plt.subplots()
 plt.plot(data[:,0],data[:,1],'r.',markersize=1)
 ax.set_title('Poincare map input')
-plt.savefig('res_mag_in_data.png')
+plt.savefig('res_mag_in_data-low_res.png')
 print("finished plotting")
 sys.exit()
 rate_init = 0.1
