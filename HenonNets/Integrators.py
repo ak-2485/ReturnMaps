@@ -47,7 +47,7 @@ def leapfrog(z,eps,n_lf_steps):
     return z_current 
 
 #H = p^2/2 - cos(q)                                                                                                                                                                     
-def zdot(z,t):
+def zdot(z,t,eps):
     X = z[:,0:1]
     Y = z[:,1:2]
     return np.hstack([-np.sin(Y),X])
