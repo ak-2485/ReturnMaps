@@ -57,5 +57,5 @@ y       = np.random.uniform(-1.0,1.0,1000)
 samples = np.hstack([x.reshape(1000,1),y.reshape(1000,1)])
 rk4   = (samples ,0.25,2000)
 
-plot.scatter(rk4[:,0],rk4[:,1])
+plt.scatter(rk4[:,0],rk4[:,1])
 plt.show()
