@@ -55,7 +55,7 @@ def zdot(z,t):
 x       = np.random.uniform(0.0,1.0,1000)
 y       = np.random.uniform(-1.0,1.0,1000)
 samples = np.hstack([x.reshape(1000,1),y.reshape(1000,1)])
-rk4   = (samples ,0.25,2000)
+rk4   = rk_pmap(samples ,0.25,2000)
 
 plt.scatter(rk4[:,0],rk4[:,1])
 plt.show()
