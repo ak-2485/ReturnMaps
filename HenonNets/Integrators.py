@@ -21,27 +21,26 @@ def rk_pmap(z,eps,n_rk_steps = 100):
     return z_current
 
 def leapfrog(z,eps,n_lf_steps):
-    dphi = 2*np.pi/n_rk_steps
+    dphi = 2*np.pi/n_lf_steps
     phi_current = 0.0
     z0   = 1.0*z
     # midpoint for update
     z_arg1    = 1.0*z0
     z_arg2    = 1.0*z0
     z_current = 1.0*z0
-    z_new     = 1.0*z1
     for i in range(n_lf_steps):
         z_up        = zdot(z_current,phi_current,eps)
         z_new       = z_current + dphi*zdot(z_current + .5*dphi*z_up, phi_current + .5*dphi,eps)
         y_mid     = (z_current[:,1] + z_new[:,1])/2.0
         z_arg1[:,0] = z_current[:,0]
-        z_arg1[:,1] = y_mid[:,1]
+        z_arg1[:,1] = y_mid
         z_arg2[:,0] = z_new[:,0] 
-        z_arg2[:,1] = y_mid[:,1]
-        x_new      = z_current[:,0] + 0.5*dphi*(zdot(z_arg1)+zdot(z_arg2)) 
-        y_mid      = z_current[:,1] - 0.5*dphi*zdot(z_arg1)
-        z_arg2[:,0] = x_new[:,0] 
-        z_arg2[:,1] = y_mid[:,1]
-        y_new      = z_current[:,1] - 0.5*dphi*zdot(z_arg2)
+        z_arg2[:,1] = y_mid
+        x_new      = z_current[:,0] + 0.5*dphi*( (zdot(z_arg1,phi_current , 0.25))[:,0] + (zdot(z_arg2,phi_current , 0.25))[:,0]) 
+        y_mid      = z_current[:,1] - 0.5*dphi* (zdot(z_arg1,phi_current , 0.25))[:,1]
+        z_arg2[:,0] = x_new 
+        z_arg2[:,1] = y_mid
+        y_new      = z_current[:,1] - 0.5*dphi* (zdot(z_arg2, phi_current , 0.25))[:,1]
         z_current[:,0]  = x_new
         z_current[:,1]  = y_new
     return z_current 
@@ -55,7 +54,7 @@ def zdot(z,t,eps):
 x       = np.random.uniform(0.0,1.0,1000)
 y       = np.random.uniform(-1.0,1.0,1000)
 samples = np.hstack([x.reshape(1000,1),y.reshape(1000,1)])
-rk4   = rk_pmap(samples ,0.25,2000)
-
+rk4     = rk_pmap(samples ,0.25,2000)
+lf      = leapfrog(samples,0.25,2000)
 plt.scatter(rk4[:,0],rk4[:,1])
 plt.show()
