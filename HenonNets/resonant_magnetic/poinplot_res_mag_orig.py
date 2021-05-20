@@ -9,6 +9,10 @@ from tensorflow.keras import Model
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Dense
 import pickle
+from datetime import datetime
+
+filename = 'p_pendulum_data' + str(datetime.now()) +'.pickle'
+d        = {}
 
 '''Define a Henon map'''
 @tf.function
@@ -122,9 +126,7 @@ def gen_samples_pmap(origin,r1,r2,nics,n_iterations,eps):
     latent_samples = gen_samples_ellipse(origin, r1,r2,nics)
     n_samples=(n_iterations//interval)*nics
     samples  = np.zeros([n_samples,2])
-    #samples[0:nics,:] = latent_samples[:,:]
-    data_file = f"samples_out_orig.pickle"
-    
+    #samples[0:nics,:] = latent_samples[:,:]    
     sample = latent_samples[:,:]
     for i in range(n_iterations):
         #loop for one p map
@@ -137,10 +139,9 @@ def gen_samples_pmap(origin,r1,r2,nics,n_iterations,eps):
             interval2 = (ind+1)*nics
             print("interval = " +str(interval1) + str(interval2))
             samples[ind*nics:(ind+1)*nics,:] = sample[:,:]
-            d = {}
-            d['sample'] = samples
+            d['samples'] = samples
             pickle.dump(d,open(data_file,"wb"))
-            print(f"Dumped {data_file} at step {i}")
+            print(f"Dumped {filename} at step {i}")
     return samples
 
 def gen_labels(samples, nics, n_iterations, eps):
