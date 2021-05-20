@@ -5,12 +5,14 @@ import sys
 import time
 import os
 sys.path.append('../')
-import Integrators as integ
 from tensorflow import keras
 from tensorflow.keras import Model
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Dense
 import pickle
+from datetime import datetime
+
+filename = 'sp_data_{now}.pickle' 
 
 '''Define a Henon map'''
 @tf.function
@@ -69,28 +71,38 @@ class HenonNet(Model):
 """END OF HENON NET ARCH """
 """    START EXAMPLE     """
 tf.keras.backend.set_floatx('float64')
-
 d = {}
-filename = "sp_out_cheb_half_check.pickle"
 
-#H = p^2/2 - cos(q)                                                                                                                                                                     
-def zdot(z,t):
-    X = z[:,0:1]
-    Y = z[:,1:2]
-    return np.hstack([-np.sin(Y),X])
-
-def rk4(z,n_rk_steps = 100):
-    dh = 2*np.pi/n_rk_steps
+def rk4(z,eps,n_rk_steps = 100):
+    dphi = 2*np.pi/n_rk_steps
+    phi_current = 0.0
     z_current = 1.0*z
-    t=0
     for i in range(n_rk_steps):
-        k1 = zdot(z_current,t)
-        k2 = zdot(z_current + .5*dh*k1, t + .5*dh)
-        k3 = zdot(z_current + .5*dh*k2, t + .5*dh)
-        k4 = zdot(z_current + dh * k3, t + dh)
-        z_current = z_current + (1.0/6.0) * dh * (k1 + 2*k2 + 2*k3 + k4)
-        t = t + dh
+        k1 = zdot(z_current,phi_current,eps)
+        k2 = zdot(z_current + .5*dphi*k1, phi_current + .5*dphi,eps)
+        k3 = zdot(z_current + .5*dphi*k2, phi_current + .5*dphi,eps)
+        k4 = zdot(z_current + dphi * k3, phi_current + dphi,eps)
+        z_current = z_current + (1.0/6.0) * dphi * (k1 + 2*k2 + 2*k3 + k4)
+        phi_current = phi_current + dphi
     return z_current
+
+def leapfrog(z,DU,eps,n_lf_steps):
+    z_current = 1.0*z
+    q_new     = 1.0*z[:,0]
+    dphi = 2*np.pi/n_lf_steps
+    phi_current = 0.0
+    for i in range(n_lf_steps):
+        q_new = z_current[:,0] + dphi * z_current[:,1] - 0.5*dphi**2 * DU(z_current[:,0])
+        z_current[:,1] = z_current[:,1] - 0.5*dphi*(DU(z_current[:,0]) + DU(q_new))
+        z_current[:,0] = q_new
+        phi_current = phi_current + dphi
+    return z_current
+
+# H(q,p) = p^2/2 - cos(q)
+def zdot(z,t,eps):
+    Q = z[:,0:1]
+    P = z[:,1:2]
+    return np.hstack([-P,np.sin(Q)])
 
 def gen_samples_circle(origin,radius,n_samples):
 # (s,theta) -> (r(s)cos theta, r(s) sin theta) maps                                                                                                                                     
@@ -106,19 +118,27 @@ def gen_samples_circle(origin,radius,n_samples):
 
 def gen_samples_pmap(origin,r1,nics,n_iterations):
     rkstep=2000
+    lfstep=200
     latent_samples = gen_samples_circle(origin, r1,nics)
     sample = latent_samples
     n_samples=(n_iterations)*nics
     out = np.zeros([n_samples,2])
     for i in range(n_iterations):
-        sample = rk4(sample,rkstep)
+        #sample = rk4(sample,0.1,rkstep)
+        #d['integrator'] = 'rk4'
+        d['integrator'] = 'leapfrog'
+        d['lfstep']     = 'lfstep'
+        d['rkstep']     = 'rkstep'
+        sample = leapfrog(sample,np.sin,0.1,lfstep)
         out[(i)*nics:(i+1)*nics,:] = sample[:,:]
     return [out,latent_samples]
 
 r1=0.3
 r2=1.5
-[labels_raw1, data_raw1] = gen_samples_pmap([0,0], r1, 101000, 1)
-[labels_raw2, data_raw2] = gen_samples_pmap([0,0], r2, 100000, 1)
+n_samp_r1 = 101000
+n_samp_r2 = 100000
+[labels_raw1, data_raw1] = gen_samples_pmap([0,0], r1, n_samp_r1, 1)
+[labels_raw2, data_raw2] = gen_samples_pmap([0,0], r2, n_samp_r2, 1)
 labels_raw = np.vstack((labels_raw1, labels_raw2))
 data_raw   = np.vstack((data_raw1, data_raw2))
 rr=labels_raw[:,0]**2+labels_raw[:,1]**2
@@ -214,14 +234,14 @@ history_rk = np.zeros([nics,2,n_steps+1])
 
 for i in range(n_steps+1):
     history_rk[:,:,i] = current_state_rk[:,:]
-    current_state_rk = integ.rk4(current_state_rk,500)
-
+    #current_state_rk = rk4(current_state_rk,0.1,500)
+    current_state_lf  = leapfrog(current_state_rk,np.sin,.1,20)
 end2=time.time()
 
 d['history_model'] = history_model
 d['history_rk']    = history_rk
 d['zic']           = zic
-d['rk_time']       = end2-end
+d['integ_time']    = end2-end
 d['p_time']        = end-start
 
 print('Poincare sections generated. Uses {} seconds'.format(end-start))
