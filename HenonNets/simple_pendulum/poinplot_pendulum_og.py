@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense
 import pickle
 from datetime import datetime
 
-filename = 'sp_data_{now}.pickle' 
+filename = 'sp_data_' + str(datetime.now()) +'.pickle' 
 
 '''Define a Henon map'''
 @tf.function
@@ -124,19 +124,19 @@ def gen_samples_pmap(origin,r1,nics,n_iterations):
     n_samples=(n_iterations)*nics
     out = np.zeros([n_samples,2])
     for i in range(n_iterations):
-        #sample = rk4(sample,0.1,rkstep)
-        #d['integrator'] = 'rk4'
-        d['integrator'] = 'leapfrog'
+        sample = rk4(sample,0.1,rkstep)
+        d['integrator'] = 'rk4'
+        #d['integrator'] = 'leapfrog'
         d['lfstep']     = 'lfstep'
         d['rkstep']     = 'rkstep'
-        sample = leapfrog(sample,np.sin,0.1,lfstep)
+        #sample = leapfrog(sample,np.sin,0.1,lfstep)
         out[(i)*nics:(i+1)*nics,:] = sample[:,:]
     return [out,latent_samples]
 
 r1=0.3
 r2=1.5
-n_samp_r1 = 101000
-n_samp_r2 = 100000
+n_samp_r1 = 1000
+n_samp_r2 = 1000
 [labels_raw1, data_raw1] = gen_samples_pmap([0,0], r1, n_samp_r1, 1)
 [labels_raw2, data_raw2] = gen_samples_pmap([0,0], r2, n_samp_r2, 1)
 labels_raw = np.vstack((labels_raw1, labels_raw2))
@@ -196,8 +196,9 @@ optimizer = keras.optimizers.Adam()
 test_model.compile(optimizer = optimizer, loss = loss_fun)
 
 callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
-h = test_model.fit(data, labels, batch_size = 1000, epochs = 2000, verbose=0
-    ,callbacks=[callback])
+h = test_model.fit(tf.convert_to_tensor(data[:n_data], dtype = tf.float64)
+                   ,tf.convert_to_tensor(labels[:n_data], dtype = tf.float64), batch_size = 1000, epochs = 2000, verbose=0
+                   ,callbacks=[callback])
 
 print("finished training")
 
@@ -222,20 +223,20 @@ current_state_model = tf.convert_to_tensor(zic, dtype = tf.float64)
 current_state_rk = 1.0*zic
 history_model = np.zeros([nics,2,n_steps+1])
 history_rk = 1.0*history_model
-start=time.time()
+
 print('Using model and rk4 to generate poincare sections...')
 
+start=time.time()
 for i in range(n_steps+1):
     history_model[:,:, i] = current_state_model.numpy()[:,:]
     current_state_model = test_model(current_state_model)
-
 end=time.time()
-history_rk = np.zeros([nics,2,n_steps+1])
 
+history_rk = np.zeros([nics,2,n_steps+1])
 for i in range(n_steps+1):
     history_rk[:,:,i] = current_state_rk[:,:]
-    #current_state_rk = rk4(current_state_rk,0.1,500)
-    current_state_lf  = leapfrog(current_state_rk,np.sin,.1,20)
+    current_state_rk = rk4(current_state_rk,0.1,500)
+    #current_state_lf  = leapfrog(current_state_rk,np.sin,.1,20)
 end2=time.time()
 
 d['history_model'] = history_model
@@ -251,3 +252,27 @@ pickle.dump(d,open(filename,"wb"))
 print("dumped pickle to file " + filename)
 
 
+fig1, ax1 = plt.subplots()
+xplot1 = np.ravel(history_model[:,0,:])
+yplot1 = np.ravel(history_model[:,1,:])
+ax1.plot(xplot1,yplot1,'b.', markersize = .2)
+ax1.plot(zic[:,0],zic[:,1],'r.')
+ax1.set_title('Poincare plot by HenonNet')
+plt.savefig('HNET_plot.png')
+
+
+fig2, ax2 = plt.subplots()
+xplot2 = np.ravel(history_rk[:,0,:])
+yplot2 = np.ravel(history_rk[:,1,:])
+ax2.plot(xplot2,yplot2,'b.', markersize = .2)
+ax2.plot(zic[:,0],zic[:,1],'r.')
+ax2.set_title('Poincare plot by Runge-Kutta')
+plt.savefig('int_plot.png')
+
+
+fig3, ax3 = plt.subplots()
+line1,=ax3.plot(xplot1,yplot1,'b.', markersize = .5)
+line2,=ax3.plot(xplot2,yplot2,'r.', markersize = .5)
+ax3.set_title('HenonNet vs Reference')
+plt.legend((line1,line2),('Learned','Reference'), loc='upper right',fontsize='medium')
+plt.savefig('HNETvsRef.png')
