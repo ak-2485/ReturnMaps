@@ -125,6 +125,7 @@ def gen_samples_pmap(origin,r1,r2,nics,n_iterations,eps):
     latent_samples = gen_samples_ellipse(origin, r1,r2,nics)
     samples = latent_samples[:,:]
     for i in range(n_iterations):
+        print("generating samples step " + str(i))
         step = rk_pmap(samples,eps,500)
         #save every "interval" pmaps
         if (i % interval == 0):
@@ -144,6 +145,7 @@ def resolve_samples_pmap(in_samples,n_iterations,eps):
     interval = 10
     samples = in_samples[:,:]
     for i in range(n_iterations):
+        print("resolving step " + str(i))
         step = rk_pmap(samples,eps,500)
         #save every "interval" pmaps
         if (i % interval == 0):
