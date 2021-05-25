@@ -196,7 +196,7 @@ test_model2 = HenonNet(unit_schedule)
 train_time_start = time.time()
 test_model2.compile(loss = loss_fun)
 print('starting optimizer')
-test_model2.train_function = scipy_optimizer.make_train_function(test_model2, verbose=0, maxiter=50)
+test_model2.train_function = scipy_optimizer.make_train_function(test_model2, verbose=0, maxiter=500)
 print('starting fit')
 h = test_model2.fit(tf.convert_to_tensor(data[:n_data], dtype = tf.float64),
                     tf.convert_to_tensor(labels[:n_data], dtype = tf.float64),

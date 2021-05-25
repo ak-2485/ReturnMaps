@@ -121,27 +121,14 @@ def gen_samples_ellipse(origin,r_major,r_minor,n_samples):
     return np.hstack([x.reshape(n_samples,1),y.reshape(n_samples,1)])
 
 def gen_samples_pmap(origin,r1,r2,nics,n_iterations,eps):
-    rkstep   = 1500
     interval = 10
     latent_samples = gen_samples_ellipse(origin, r1,r2,nics)
-    n_samples=(n_iterations//interval)*nics
-    samples  = np.zeros([n_samples,2])
-    #samples[0:nics,:] = latent_samples[:,:]    
-    sample = latent_samples[:,:]
+    samples = latent_samples[:,:]
     for i in range(n_iterations):
-        #loop for one p map
-        for j in range(1001):
-            sample = rk_pmap(sample,eps,rkstep)
+        step = rk_pmap(samples,eps,500)
         #save every "interval" pmaps
         if (i % interval == 0):
-            ind = i//interval
-            interval1 = ind*nics
-            interval2 = (ind+1)*nics
-            print("interval = " +str(interval1) + str(interval2))
-            samples[ind*nics:(ind+1)*nics,:] = sample[:,:]
-            d['samples'] = samples
-            pickle.dump(d,open(data_file,"wb"))
-            print(f"Dumped {filename} at step {i}")
+            samples = np.vstack([samples,step])
     return samples
 
 def gen_labels(samples, nics, n_iterations, eps):
@@ -153,12 +140,31 @@ def gen_labels(samples, nics, n_iterations, eps):
         out[(i)*nics:(i+1)*nics,:] = sample[:,:]
     return out
 
+def resolve_samples_pmap(in_samples,n_iterations,eps):
+    interval = 10
+    samples = in_samples[:,:]
+    for i in range(n_iterations):
+        step = rk_pmap(samples,eps,500)
+        #save every "interval" pmaps
+        if (i % interval == 0):
+            samples = np.vstack([samples,step])
+    return samples
+
 
 r1=1.75
 r2=1.0
 eps=get_eps()
-data = gen_samples_pmap([0,0], r1,r2, 1000, 40,eps)
-labels = gen_labels(data,1000,40,eps)
+#data = gen_samples_pmap([0,0], r1,r2, 10000, 60,eps)
+infile1 = 'p_pendulum_data2021-05-24 21:45:24.734526.pickle'
+###                                                                                                                                                                                     
+d1 = pickle.load(open(infile1,"rb"))
+in_data          = d1['data']
+####     
+data   = resolve_samples_pmap(in_data,400,eps)
+labels = gen_labels(data,len(data),1,eps)
+d['data'] = data
+pickle.dump(d,open(filename,"wb"))
+print(np.shape(data))
 print("finished labels and data")
 
 sys.exit()
@@ -196,7 +202,7 @@ l = []
 for i in range(10):
     l.append(10)
 unit_schedule = l
-n_data=220000
+n_data=len(data)
 
 test_model2 = HenonNet(unit_schedule)
 Adamoptimizer = keras.optimizers.Adam()
